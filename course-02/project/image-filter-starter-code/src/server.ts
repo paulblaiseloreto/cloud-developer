@@ -1,6 +1,7 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 import {filterImageFromURL, deleteLocalFiles} from './util/util';
+import { runInNewContext } from 'vm';
 
 (async () => {
 
@@ -14,7 +15,7 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
   app.use(bodyParser.json());
 
   // @TODO1 IMPLEMENT A RESTFUL ENDPOINT
-  // GET /filteredimage?image_url={{URL}}
+  //GET /filteredimage?image_url={{URL}}
   // endpoint to filter an image from a public url.
   // IT SHOULD
   //    1
@@ -26,11 +27,36 @@ import {filterImageFromURL, deleteLocalFiles} from './util/util';
   //    image_url: URL of a publicly accessible image
   // RETURNS
   //   the filtered image file [!!TIP res.sendFile(filteredpath); might be useful]
-
-  /**************************************************************************** */
-
-  //! END @TODO1
   
+    
+    const isImageUrl = require('is-image-url');
+    //isImageUrl('http://localhost:8082/filteredimage?image_url=https://commons.wikimedia.org/wiki/Category:Prints#/media/File:Big_Top,_The_Wrington_Suite.jpg')
+
+    app.get("/filteredimage", async (req, res) => {
+        
+        let { image_url } = req.query;
+
+        if (!isImageUrl(image_url)) {
+            return res.status(400).send("Image url is required bro!");
+        }
+        try {
+            const filePath = await filterImageFromURL(image_url);
+            res.status(200).sendFile(filePath);
+
+            filterImageFromURL(image_url).then( (filePath) => console.log("async logging has val: ", filePath));
+
+            res.status(200).sendFile(filePath, () => 
+                deleteLocalFiles([filePath])
+            );
+        } catch (err) {
+            alert("Process Failed")
+        }
+    })
+
+    /**************************************************************************** */
+
+    //! END @TODO1
+
   // Root Endpoint
   // Displays a simple message to the user
   app.get( "/", async ( req, res ) => {
